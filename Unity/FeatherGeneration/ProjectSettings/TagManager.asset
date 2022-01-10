@@ -8,6 +8,9 @@ TagManager:
   - lb_groundTarget
   - lb_perchTarget
   - bone
+  - feather
+  - root
+  - guide
   layers:
   - Default
   - TransparentFX
