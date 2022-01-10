@@ -1,0 +1,6 @@
+https://area.autodesk.com/blogs/the-maya-blog/making-a-3d-ostrich/ 
+https://github.com/CreativeTools/ct-feather-generator/blob/master/README.md
+https://www.sidefx.com/tutorials/feather-tools/
+https://www.mpc-rnd.com/mesh-driven-generation-and-animation-of-groomed-feathers/
+https://www.highend3d.com/maya/script/ck_feathercreate-for-maya
+http://documentation.peregrinelabs.com/yeti/feathers.html
