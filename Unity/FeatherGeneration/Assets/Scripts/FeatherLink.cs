@@ -5,7 +5,7 @@ using UnityEngine;
 public class FeatherLink : MonoBehaviour
 {
     // Start is called before the first frame update
-   // [SerializeField] private int _closestBone=0;
+    // [SerializeField] private int _closestBone=0;
     [SerializeField] private GameObject _closestBone = null;
 
     [SerializeField] BoneWeight _weights;

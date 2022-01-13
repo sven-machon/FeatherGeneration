@@ -18,7 +18,7 @@ public class DataRetrieval : MonoBehaviour
         _normals = new List<Vector3>(_mesh.normals);
         _weights = new List<BoneWeight>(_mesh.boneWeights);
         
-        
+                
     }
 
     // Update is called once per frame
