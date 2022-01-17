@@ -2,11 +2,12 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class LinkedGuide : MonoBehaviour
+public class LinkedGuide : System.Object
 {
     private GameObject _guide = null;
     private GameObject _joint = null;
-    
+    private int _jointIdx = 0;
+
 
     public GameObject Guide
     {
@@ -19,14 +20,11 @@ public class LinkedGuide : MonoBehaviour
         get { return _joint; }
         set { _joint = value; }
     }
-    void Start()
-    {
-        
+
+    public int JointIdx { 
+        get { return _jointIdx; } 
+        set { _jointIdx = value; }
+    
     }
 
-    // Update is called once per frame
-    void Update()
-    {
-        
-    }
 }

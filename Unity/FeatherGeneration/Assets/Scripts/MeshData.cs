@@ -5,11 +5,16 @@ using UnityEngine;
 public class MeshData : MonoBehaviour
 {
     [SerializeField] private SkinnedMeshRenderer _skin=null;
-    public SkinnedMeshRenderer Skin { get { return _skin; } }
     [SerializeField]private Mesh _mesh;
+    [SerializeField]private List<Vector3> _vertices = null;
+    [SerializeField]private List<Vector3> _normals = null;
+    [SerializeField]private List<BoneWeight> _weights = null;
+    [SerializeField]private List<Transform> _bones=null;
+
+
+    public SkinnedMeshRenderer Skin { get { return _skin; } }
     public Mesh Mesh { get { return _mesh; } }
 
-   [SerializeField]private List<Vector3> _vertices = null;
 
    public List<Vector3> Vertices { 
         get
@@ -41,10 +46,15 @@ public class MeshData : MonoBehaviour
         } 
     }
 
-   [SerializeField]private List<Vector3> _normals = null;
     public List<Vector3> Normals { 
         get
         {
+            if (_mesh == null)
+            {
+                _mesh = new Mesh();
+                _skin.BakeMesh(_mesh);
+            }
+
             if (_normals.Count==0)
                 _normals = new List<Vector3>(_mesh.normals);
 
@@ -52,11 +62,16 @@ public class MeshData : MonoBehaviour
         } 
     }
 
-   [SerializeField]private List<BoneWeight> _weights = null;
     public List<BoneWeight> Weights
     {
         get
         {
+            if (_mesh == null)
+            {
+                _mesh = new Mesh();
+                _skin.BakeMesh(_mesh);
+            }
+
             if (_weights.Count==0)
                 _weights = new List<BoneWeight>(_skin.sharedMesh.boneWeights);
 
@@ -65,11 +80,11 @@ public class MeshData : MonoBehaviour
 
     }
    
-    [SerializeField]private List<Transform> _bones=null;
     public List<Transform> Bones
     {
         get
         {
+
             if (_bones.Count==0)
                 _bones = new List<Transform>(_skin.bones);
 

@@ -10,15 +10,21 @@ public class FeatherGenerator : MonoBehaviour
 
     #region Variables
     [SerializeField] private GameObject _feather;
-    [SerializeField] private List<GameObject> _guides=null;
+    [SerializeField] private List<GameObject> _guides = null;
     [SerializeField] private List<LinkedGuide> _links = null;
     [SerializeField] private MeshData _data = null;
 
     [SerializeField] private Transform _parentTransform;
 
+    private List<Vector3> _vertices = null;
+    private List<Vector3> _normals = null;
+    private List<BoneWeight> _weights = null;
+    List<Transform> _bones = null;
+
+
     private List<GameObject> _FirstCoat = null;
-    
-#endregion
+
+    #endregion
 
     void Start()
     {
@@ -26,9 +32,9 @@ public class FeatherGenerator : MonoBehaviour
         if (_data == null)
             Debug.LogError("No MeshData assigned to generator.");
 
-        if(_guides==null||_guides.Count==0)
+        if (_guides == null || _guides.Count == 0)
         {
-            _guides =new List<GameObject>( GameObject.FindGameObjectsWithTag("guide"));
+            _guides = new List<GameObject>(GameObject.FindGameObjectsWithTag("guide"));
 
             if (_guides == null || _guides.Count == 0)
                 Debug.LogError("No associated guides found.");
@@ -37,54 +43,62 @@ public class FeatherGenerator : MonoBehaviour
         if (!TryGetComponent<MeshData>(out _data))
             Debug.LogError("No Meshdata found");
 
+
+        _vertices = _data.Vertices;
+        _bones = _data.Bones;
+        _normals = _data.Normals;
+        _weights = _data.Weights;
+
+
         //Link every guide automatically to its nearest available joint (one guide per joint)
         _links = new List<LinkedGuide>();
-        foreach(GameObject guide in _guides)
+        foreach (GameObject guide in _guides)
         {
             _links.Add(FindClosestBone(guide));
         }
 
 
-       _FirstCoat= GenerateFirstCoat();
+        _FirstCoat = GenerateFirstCoat();
 
         //debugging print
-       foreach(LinkedGuide link in _links)
+        foreach (LinkedGuide link in _links)
         {
-            Debug.Log("Guide: " + link.Guide.name + ", Joint: " + link.Joint.name);
+            Debug.Log("Guide: " + link.Guide.name + ", Joint: " + link.JointIdx);
         }
 
 
     }
 
-    // Update is called once per frame
-    void Update()
-    {
-        
-    }
 
-    private LinkedGuide FindClosestBone(GameObject guide) {
-        LinkedGuide link= new LinkedGuide();
+    private LinkedGuide FindClosestBone(GameObject guide)
+    {
+        LinkedGuide link = new LinkedGuide();
 
         link.Guide = guide;
 
         GameObject closestBone = null;
-        List<GameObject> joints = new List<GameObject>(GameObject.FindGameObjectsWithTag("bone"));
+        List<Transform> bones = _data.Bones;
 
         float distance = Mathf.Infinity;
-        Vector3 pos =guide.transform.position;
+        Vector3 pos = guide.transform.position;
 
-        foreach (GameObject joint in joints)
+        //iterate over every bone
+        for (int i = 0; i < bones.Count; i++)
         {
-            if (_links.FindIndex(i => i.Joint == joint) != -1)
+            //skip bones that already have a guide assigned
+            if (_links.FindIndex(j => j.Joint == bones[i]) != -1)
                 continue;
 
-            Vector3 diff = joint.transform.position - pos;
+
+
+            Vector3 diff = bones[i].transform.position - pos;
             float currentDist = diff.sqrMagnitude;
             if (currentDist < distance)
             {
-                closestBone = joint;
+                closestBone = bones[i].gameObject;
                 distance = currentDist;
-                link.Joint = joint;
+                link.Joint = bones[i].gameObject;
+                link.JointIdx = i;
             }
         }
 
@@ -95,42 +109,37 @@ public class FeatherGenerator : MonoBehaviour
     {
         List<GameObject> feathers = new List<GameObject>();
 
-        List<Vector3> vertices = _data.Vertices;
-        List<Vector3> normals = _data.Normals;
-        List<BoneWeight> weights = _data.Weights;
-        List<Transform> bones = _data.Bones;
-
-
-        for(int i = 0;  i < vertices.Count;i++)
+        for (int i = 0; i < _vertices.Count; i++)
         {
             List<LinkedGuide> associatedGuides = new List<LinkedGuide>();
-
+            //skip vertex if no associated guides
             #region Find Associated guides
-            int linkIndex = _links.FindIndex(j => j.Joint == bones[weights[i].boneIndex0].gameObject);
-            if (linkIndex!= -1)
-            {              
-                associatedGuides.Add(_links[linkIndex]);
-            }
-
-            linkIndex = _links.FindIndex(j => j.Joint == bones[weights[i].boneIndex1].gameObject);
+            //go over all associated joints of the vertex and see if they have a guide linked to them
+            int linkIndex = _links.FindIndex(j => j.Joint == _bones[_weights[i].boneIndex0].gameObject);
             if (linkIndex != -1)
             {
                 associatedGuides.Add(_links[linkIndex]);
             }
 
-            linkIndex = _links.FindIndex(j => j.Joint == bones[weights[i].boneIndex2].gameObject);
+            linkIndex = _links.FindIndex(j => j.Joint == _bones[_weights[i].boneIndex1].gameObject);
             if (linkIndex != -1)
             {
                 associatedGuides.Add(_links[linkIndex]);
             }
 
-            linkIndex = _links.FindIndex(j => j.Joint == bones[weights[i].boneIndex3].gameObject);
+            linkIndex = _links.FindIndex(j => j.Joint == _bones[_weights[i].boneIndex2].gameObject);
             if (linkIndex != -1)
             {
                 associatedGuides.Add(_links[linkIndex]);
             }
 
-            if(associatedGuides.Count==0)
+            linkIndex = _links.FindIndex(j => j.Joint == _bones[_weights[i].boneIndex3].gameObject);
+            if (linkIndex != -1)
+            {
+                associatedGuides.Add(_links[linkIndex]);
+            }
+
+            if (associatedGuides.Count == 0)
             {
                 Debug.Log("no feathers present");
                 continue;
@@ -138,12 +147,149 @@ public class FeatherGenerator : MonoBehaviour
             #endregion
 
 
-            GameObject feather = Instantiate(_feather, vertices[i], Quaternion.identity); ;
-            feather.transform.parent = _parentTransform;
-            Debug.Log("generate");
+
+
+
+            feathers.Add(GenerateFeather(_vertices[i], associatedGuides, _normals[i], _weights[i], i));
+
         }
 
         return feathers;
     }
 
+    private GameObject GenerateFeather(Vector3 vertex, List<LinkedGuide> links, Vector3 normal, BoneWeight weight, int idx)
+    {
+
+        Debug.Log(links[0].JointIdx);
+        Vector3 totalRotate = new Vector3();
+        Vector3 totalScale = new Vector3(/*1,1,1*/);
+        Quaternion rotation = Quaternion.identity;
+
+        switch (links.Count)
+        {
+            case 1:
+                {
+
+                    totalRotate = links[0].Guide.transform.rotation.eulerAngles;
+
+                    if (links[0].JointIdx == weight.boneIndex0)
+                    {
+                        totalScale = links[0].Guide.transform.lossyScale * weight.weight0;
+                    }
+                    else if (links[0].JointIdx == weight.boneIndex1)
+                    {
+                        totalScale = links[0].Guide.transform.lossyScale * weight.weight1;
+                    }
+                    else if (links[0].JointIdx == weight.boneIndex2)
+                    {
+                        totalScale = links[0].Guide.transform.lossyScale * weight.weight2;
+                    }
+                    else if (links[0].JointIdx == weight.boneIndex3)
+                    {
+                        totalScale = links[0].Guide.transform.lossyScale * weight.weight3;
+                    }
+
+                    break;
+                }
+
+
+            case 2:
+                {
+                    float[] weights = new float[2] { 0, 0 };
+                    for (int i = 0; i < 2; i++)
+                    {
+                        if (links[i].JointIdx == weight.boneIndex0)
+                            weights[i] = weight.weight0;
+                        else if (links[i].JointIdx == weight.boneIndex1)
+                            weights[i] = weight.weight1;
+                        else if (links[i].JointIdx == weight.boneIndex2)
+                            weights[i] = weight.weight2;
+                        else if (links[i].JointIdx == weight.boneIndex3)
+                            weights[i] = weight.weight3;
+                    }
+
+                    float calculatedWeight = weights[0] + weights[1];
+                    for (int i = 0; i < 2; i++)
+                    {
+                        totalRotate += links[i].Guide.transform.eulerAngles * weights[i] / calculatedWeight;
+                        totalScale += links[i].Guide.transform.localScale * weights[i] / calculatedWeight;
+                    }
+
+                    break;
+                          
+                }
+
+            case 3:
+                {
+                    float[] weights = new float[3] { 0, 0, 0 };
+                    for (int i = 0; i < 3; i++)
+                    {
+                        if (links[i].JointIdx == weight.boneIndex0)
+                            weights[i] = weight.weight0;
+                        else if (links[i].JointIdx == weight.boneIndex1)
+                            weights[i] = weight.weight1;
+                        else if (links[i].JointIdx == weight.boneIndex2)
+                            weights[i] = weight.weight2;
+                        else if (links[i].JointIdx == weight.boneIndex3)
+                            weights[i] = weight.weight3;
+                    }
+
+                    float calculatedWeight = weights[0] + weights[1] + weights[2];
+                    for (int i = 0; i < 3; i++)
+                    {
+                        totalRotate += links[i].Guide.transform.eulerAngles * weights[i]/calculatedWeight;
+                        totalScale += links[i].Guide.transform.localScale * weights[i]/calculatedWeight;
+                    }
+
+
+                    break;
+                }
+
+            case 4:
+                {
+                    float[] weights =new float[4]{ 0, 0, 0, 0 };
+                    for(int i=0;i<4;i++)
+                    {
+                        if (links[i].JointIdx == weight.boneIndex0)
+                            weights[i] = weight.weight0;
+                        else if (links[i].JointIdx == weight.boneIndex1)
+                            weights[i] = weight.weight1;
+                        else if (links[i].JointIdx == weight.boneIndex2)
+                            weights[i] = weight.weight2;
+                        else if (links[i].JointIdx == weight.boneIndex3)
+                            weights[i] = weight.weight3;
+                    }
+
+
+                    for(int i = 0; i < 4; i++)
+                    {
+                        totalRotate += links[i].Guide.transform.eulerAngles * weights[i];
+                        totalScale += links[i].Guide.transform.localScale * weights[i];
+                    }
+
+                    break;
+                }
+
+        }
+
+               
+
+
+
+
+                GameObject feather = Instantiate(_feather, vertex, Quaternion.Euler(totalRotate));
+               // feather.transform.Rotate(totalRotate);
+
+                feather.transform.parent = _parentTransform;
+                feather.name = idx.ToString();
+                feather.transform.localScale = totalScale;
+                // feather.transform.rotation=(Quaternion.Euler( totalRotate));
+
+
+                return feather;
+
+        
+    }
 }
+
+
