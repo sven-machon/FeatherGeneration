@@ -11,7 +11,7 @@ GameObject:
   - component: {fileID: 5118578007134632206}
   - component: {fileID: 5118578007134632204}
   - component: {fileID: 5118578007134632205}
-  m_Layer: 0
+  m_Layer: 1
   m_Name: TopFeather
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -124,7 +124,7 @@ GameObject:
   - component: {fileID: 6107061927694614437}
   - component: {fileID: 9164561684862337712}
   - component: {fileID: 3842381196502958543}
-  m_Layer: 0
+  m_Layer: 1
   m_Name: BottomFeather
   m_TagString: Untagged
   m_Icon: {fileID: 0}
